@@ -26,7 +26,7 @@ fn init_db() -> Result<()> {
     Ok(())
 }
 
-
+// Generate a new keypair eddsa based on the ed25519 curve
 fn generate_keypair() -> SigningKey {
     let mut csprng = OsRng{};
     let signing_key: SigningKey = SigningKey::generate(&mut csprng);
