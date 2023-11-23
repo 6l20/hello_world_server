@@ -66,6 +66,7 @@ async fn random_number() -> impl Responder {
 
 // Endpoint to create a new user
 async fn create_user(user: web::Json<User>) -> impl Responder {
+    log::info!("Handling request for /users (POST)");
     let conn = Connection::open("users.db").unwrap();
     conn.execute(
         "INSERT INTO users (name, email) VALUES (?1, ?2)",
@@ -77,6 +78,7 @@ async fn create_user(user: web::Json<User>) -> impl Responder {
 
 // Endpoint to retrieve all users
 async fn get_users() -> impl Responder {
+    log::info!("Handling request for /users (GET)");
     let conn = Connection::open("users.db").unwrap();
     let mut stmt = conn.prepare("SELECT id, name, email FROM users").unwrap();
     let user_iter = stmt.query_map(params![], |row| {
@@ -107,7 +109,7 @@ async fn main() -> std::io::Result<()> {
             .route("/users", web::get().to(get_users))
             .route("/users", web::post().to(create_user))
     })
-    .bind("127.0.0.1:8080")?
+    .bind("0.0.0.0:8080")?
     .run()
     .await
 }
