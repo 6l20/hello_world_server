@@ -1,3 +1,4 @@
+
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use rand::Rng; // To generate random numbers
