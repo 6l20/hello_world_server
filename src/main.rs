@@ -4,7 +4,7 @@ use ed25519_dalek::Digest;
 use ed25519_dalek::Signature;
 use ed25519_dalek::SignatureError;
 use ed25519_dalek::SigningKey;
-use log::{info, trace, warn};
+
 use rand::rngs::OsRng;
 use rand::Rng; // To generate random numbers
 use rusqlite::{params, Connection, Result};
