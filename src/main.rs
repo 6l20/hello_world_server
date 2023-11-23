@@ -1,9 +1,16 @@
+use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use rand::Rng; // To generate random numbers
+use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use std::env;
 use log::{info, trace, warn};
 use rusqlite::{params, Connection, Result};
+use ed25519_dalek::SigningKey;
+use ed25519_dalek::Signature;
+use ed25519_dalek::SignatureError;
+use ed25519_dalek::Digest;
+use sha2::Sha512;
 
 fn init_db() -> Result<()> {
     let conn = Connection::open("users.db")?;
@@ -19,6 +26,13 @@ fn init_db() -> Result<()> {
     Ok(())
 }
 
+
+fn generate_keypair() -> SigningKey {
+    let mut csprng = OsRng{};
+    let signing_key: SigningKey = SigningKey::generate(&mut csprng);
+    signing_key
+}
+
 #[derive(Serialize, Deserialize)]
 struct User {
     name: String,
@@ -30,6 +44,7 @@ struct User {
 struct VersionInfo {
     version: String,
     date: String,
+    signature: String,
 }
 
 #[derive(Serialize)]
@@ -44,11 +59,22 @@ async fn greet() -> impl Responder {
 }
 
 // Handler for the version endpoint
-async fn version() -> impl Responder {
+async fn version(data: web::Data<SigningKey>) -> impl Responder {
     log::info!("Handling request for /version");
+
+    let context: &[u8] = b"Ed25519DalekSignPrehashedDoctest";
+
+    // Create a hash digest object which we'll feed the message into:
+    let mut prehashed: Sha512 = Sha512::new();
+
+    prehashed.update(context);
+
+    let sig: Result<Signature, SignatureError> = data.sign_prehashed(prehashed, Some(context));
+
     HttpResponse::Ok().json(VersionInfo {
         version: "0.1.0".to_string(),
         date: "06/01/2022".to_string(),
+        signature: "0x".to_string() + &hex::encode(sig.unwrap().to_bytes()),
     })
 }
 
@@ -97,12 +123,15 @@ async fn main() -> std::io::Result<()> {
     env::set_var("RUST_LOG", "info"); // Set default log level to info if not specified
     env_logger::init(); // Initialize the logger
 
+    let signing_key = generate_keypair();
+
     init_db().unwrap();
 
     log::info!("Starting server at http://127.0.0.1:8080");
 
-    HttpServer::new(|| {
+    HttpServer::new(move || {
         App::new()
+        .app_data(Data::new(signing_key.clone()))
             .route("/", web::get().to(greet))
             .route("/version", web::get().to(version))
             .route("/random_number", web::get().to(random_number))
