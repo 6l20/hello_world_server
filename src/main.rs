@@ -1,17 +1,16 @@
-
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
-use rand::Rng; // To generate random numbers
-use rand::rngs::OsRng;
-use serde::{Deserialize, Serialize};
-use std::env;
-use log::{info, trace, warn};
-use rusqlite::{params, Connection, Result};
-use ed25519_dalek::SigningKey;
+use ed25519_dalek::Digest;
 use ed25519_dalek::Signature;
 use ed25519_dalek::SignatureError;
-use ed25519_dalek::Digest;
+use ed25519_dalek::SigningKey;
+use log::{info, trace, warn};
+use rand::rngs::OsRng;
+use rand::Rng; // To generate random numbers
+use rusqlite::{params, Connection, Result};
+use serde::{Deserialize, Serialize};
 use sha2::Sha512;
+use std::env;
 
 fn init_db() -> Result<()> {
     let conn = Connection::open("users.db")?;
@@ -29,7 +28,7 @@ fn init_db() -> Result<()> {
 
 // Generate a new keypair eddsa based on the ed25519 curve
 fn generate_keypair() -> SigningKey {
-    let mut csprng = OsRng{};
+    let mut csprng = OsRng {};
     let signing_key: SigningKey = SigningKey::generate(&mut csprng);
     signing_key
 }
@@ -98,7 +97,8 @@ async fn create_user(user: web::Json<User>) -> impl Responder {
     conn.execute(
         "INSERT INTO users (name, email) VALUES (?1, ?2)",
         params![user.name, user.email],
-    ).unwrap();
+    )
+    .unwrap();
 
     HttpResponse::Ok().body("User created")
 }
@@ -108,12 +108,14 @@ async fn get_users() -> impl Responder {
     log::info!("Handling request for /users (GET)");
     let conn = Connection::open("users.db").unwrap();
     let mut stmt = conn.prepare("SELECT id, name, email FROM users").unwrap();
-    let user_iter = stmt.query_map(params![], |row| {
-        Ok(User {
-            name: row.get(1)?,
-            email: row.get(2)?,
+    let user_iter = stmt
+        .query_map(params![], |row| {
+            Ok(User {
+                name: row.get(1)?,
+                email: row.get(2)?,
+            })
         })
-    }).unwrap();
+        .unwrap();
 
     let users: Vec<User> = user_iter.map(|user| user.unwrap()).collect();
     HttpResponse::Ok().json(users)
@@ -132,7 +134,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-        .app_data(Data::new(signing_key.clone()))
+            .app_data(Data::new(signing_key.clone()))
             .route("/", web::get().to(greet))
             .route("/version", web::get().to(version))
             .route("/random_number", web::get().to(random_number))
