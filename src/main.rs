@@ -32,11 +32,7 @@ fn generate_keypair() -> SigningKey {
     signing_key
 }
 
-#[derive(Serialize, Deserialize)]
-struct User {
-    name: String,
-    email: String,
-}
+
 
 // Define a structure for the version response
 #[derive(Serialize)]
@@ -74,36 +70,9 @@ async fn version(data: web::Data<SigningKey>) -> impl Responder {
     })
 }
 
-// Endpoint to create a new user
-async fn create_user(user: web::Json<User>) -> impl Responder {
-    log::info!("Handling request for /users (POST)");
-    let conn = Connection::open("users.db").unwrap();
-    conn.execute(
-        "INSERT INTO users (name, email) VALUES (?1, ?2)",
-        params![user.name, user.email],
-    )
-    .unwrap();
+mod models;
 
-    HttpResponse::Ok().body("User created")
-}
 
-// Endpoint to retrieve all users
-async fn get_users() -> impl Responder {
-    log::info!("Handling request for /users (GET)");
-    let conn = Connection::open("users.db").unwrap();
-    let mut stmt = conn.prepare("SELECT id, name, email FROM users").unwrap();
-    let user_iter = stmt
-        .query_map(params![], |row| {
-            Ok(User {
-                name: row.get(1)?,
-                email: row.get(2)?,
-            })
-        })
-        .unwrap();
-
-    let users: Vec<User> = user_iter.map(|user| user.unwrap()).collect();
-    HttpResponse::Ok().json(users)
-}
 
 mod config;
 mod routes;
@@ -127,8 +96,8 @@ async fn main() -> std::io::Result<()> {
             .route("/", web::get().to(routes::greet_route::greet))
             .route("/version", web::get().to(version))
             .route("/random_number", web::get().to(routes::random_route::random_number))
-            .route("/users", web::get().to(get_users))
-            .route("/users", web::post().to(create_user))
+            .route("/users", web::get().to(routes::user_route::get_users))
+            .route("/users", web::post().to(routes::user_route::create_user))
     })
     .bind("0.0.0.0:8080")?
     .run()
