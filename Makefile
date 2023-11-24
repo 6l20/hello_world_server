@@ -47,6 +47,16 @@ lint:
 	@echo "Linting project..."
 	@cargo lint
 
+# Fmt
+fmt:
+	@echo "Running fmt"
+	@cargo fmt
+
+# Fix
+fix:
+	@echo "Running fix"
+	@cargo fix
+
 # Checkstyle the project
 checkstyle:
 	@echo "Running checkstyle..."
